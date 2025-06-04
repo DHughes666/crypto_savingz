@@ -45,8 +45,6 @@ router.get("/savings", authenticate, async (req, res) => {
   console.log("GET /savings hit");
 
   const firebaseId = req.firebaseId!;
-  console.log("firebaseId:", firebaseId);
-
   const user = await prisma.user.findUnique({
     where: { firebaseId },
     include: { savings: true },

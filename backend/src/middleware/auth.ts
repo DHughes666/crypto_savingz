@@ -13,7 +13,6 @@ export async function authenticate(
     const decoded = await admin.auth().verifyIdToken(token);
 
     req.firebaseId = decoded.uid; // ✅ type-safe now
-    console.log("My credentials: ", req.firebaseId);
     next();
   } catch (err) {
     console.error("Token verification failed:", err);
