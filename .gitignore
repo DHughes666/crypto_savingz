@@ -1,0 +1,9 @@
+/backend/node_modules
+/backend/.env
+/backend/src/firebase/serviceAccountKey.json
+/crypto_savings/node_modules
+/crypto_savings/.expo
+/crypto_savings/.env
+/crypto_savings/client_secre_android.json
+
+
