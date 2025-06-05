@@ -6,8 +6,9 @@ import axios from "axios";
 import Constants from "expo-constants";
 
 interface Saving {
-  amount: number;
+  amount: number; // USD
   crypto: string;
+  cryptoQty?: number; // New (optional, for future use)
   timestamp: string;
 }
 
@@ -16,7 +17,7 @@ export default function DashboardScreen({ navigation, route }: any) {
   const [savings, setSavings] = useState<Saving[]>([]);
   const [loading, setLoading] = useState(true);
   const [priceMap, setPriceMap] = useState<Record<string, number>>({});
-
+  const [priceNgnMap, setPriceNgnMap] = useState<Record<string, number>>({});
   const [priceChangeMap, setPriceChangeMap] = useState<Record<string, number>>(
     {}
   );
@@ -49,22 +50,30 @@ export default function DashboardScreen({ navigation, route }: any) {
     try {
       const ids = ["bitcoin", "ethereum", "tether", "solana", "binancecoin"];
       const res = await axios.get(
-        `https://api.coingecko.com/api/v3/simple/price`,
+        "https://api.coingecko.com/api/v3/simple/price",
         {
           params: {
             ids: ids.join(","),
-            vs_currencies: "usd",
+            vs_currencies: "usd,ngn",
             include_24hr_change: true,
           },
         }
       );
 
-      const map: Record<string, number> = {
+      const usdMap: Record<string, number> = {
         BTC: res.data.bitcoin.usd,
         ETH: res.data.ethereum.usd,
         USDT: res.data.tether.usd,
         SOL: res.data.solana.usd,
         BNB: res.data.binancecoin.usd,
+      };
+
+      const ngnMap: Record<string, number> = {
+        BTC: res.data.bitcoin.ngn,
+        ETH: res.data.ethereum.ngn,
+        USDT: res.data.tether.ngn,
+        SOL: res.data.solana.ngn,
+        BNB: res.data.binancecoin.ngn,
       };
 
       const changeMap: Record<string, number> = {
@@ -75,21 +84,11 @@ export default function DashboardScreen({ navigation, route }: any) {
         BNB: res.data.binancecoin.usd_24h_change,
       };
 
-      setPriceMap(map);
+      setPriceMap(usdMap);
+      setPriceNgnMap(ngnMap);
       setPriceChangeMap(changeMap);
     } catch (err) {
-      console.error("Failed to fetch prices:", err);
-    }
-  };
-
-  const fetchUsdToNgnRate = async () => {
-    try {
-      const res = await axios.get(
-        "https://api.exchangerate.host/latest?base=USD&symbols=NGN"
-      );
-      setUsdToNgn(res.data.rates.NGN);
-    } catch (err) {
-      console.error("Failed to fetch USD→NGN rate:", err);
+      console.error("Failed to fetch prices from CoinGecko:", err);
     }
   };
 
@@ -98,12 +97,6 @@ export default function DashboardScreen({ navigation, route }: any) {
       if (user) {
         fetchSavings();
         fetchPrices();
-        fetchUsdToNgnRate();
-        const interval = setInterval(() => {
-          fetchPrices();
-          fetchUsdToNgnRate();
-        }, 5 * 60 * 1000); // every 5 min
-        return () => clearInterval(interval);
       } else {
         setLoading(false);
       }
@@ -124,9 +117,11 @@ export default function DashboardScreen({ navigation, route }: any) {
   };
 
   const total = savings.reduce((sum, s) => sum + s.amount, 0);
-  const totalUsd = savings.reduce((sum, s) => {
-    const price = priceMap[s.crypto] || 0;
-    return sum + s.amount * price;
+  const totalUsd = total; // it's already in USD
+  const totalNgn = savings.reduce((sum, s) => {
+    const ngnPrice = priceNgnMap[s.crypto] || 0;
+    const cryptoAmount = s.amount / (priceMap[s.crypto] || 1);
+    return sum + cryptoAmount * ngnPrice;
   }, 0);
 
   const grouped = groupByCoin(savings);
@@ -146,29 +141,28 @@ export default function DashboardScreen({ navigation, route }: any) {
       </Text>
 
       <Card style={{ marginBottom: 16, padding: 16 }}>
-        <Text>Total Saved (in crypto): ${total.toFixed(2)}</Text>
+        <Text>Total Saved: ${totalUsd.toFixed(2)}</Text>
         <Text style={{ color: "#888", marginTop: 4 }}>
-          ≈ ${totalUsd.toFixed(2)} / ₦
-          {(totalUsd * usdToNgn).toLocaleString(undefined, {
-            maximumFractionDigits: 2,
-          })}
+          ≈ ₦{totalNgn.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </Text>
       </Card>
 
-      {Object.entries(grouped).map(([coin, amount]) => {
-        const price = priceMap[coin] || 0;
-        const usdValue = price * amount;
-        const ngnValue = usdValue * usdToNgn;
+      {Object.entries(grouped).map(([coin, usdAmount]) => {
+        const usdPrice = priceMap[coin] || 1; // fallback to 1 to avoid NaN
+        const ngnPrice = priceNgnMap[coin] || 0;
+        const cryptoAmount = usdAmount / usdPrice;
+        const ngnValue = cryptoAmount * ngnPrice;
         const change = priceChangeMap[coin];
 
         return (
           <Card key={coin} style={{ marginBottom: 12, padding: 16 }}>
             <Text>
-              {coin}: {amount.toFixed(4)}
+              {coin}: ${usdAmount.toFixed(2)}
             </Text>
             <Text style={{ color: "#555", marginTop: 4 }}>
-              ≈ ${usdValue.toFixed(2)} / ₦
+              ≈ ₦
               {ngnValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              ~ ({cryptoAmount.toFixed(6)} {coin})
             </Text>
             {change !== undefined && (
               <Text

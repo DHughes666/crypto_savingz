@@ -15,14 +15,24 @@ export default function GoogleSignIn() {
     EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  } = Constants.expoConfig?.extra || {}; // use `expoConfig` for managed workflow
+  } = Constants.expoConfig?.extra || {};
 
+  const { API_URL } = Constants.expoConfig?.extra || {};
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: EXPO_PUBLIC_GOOGLE_CLIENT_ID, // for web
+    clientId: EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     androidClientId: EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    redirectUri: AuthSession.makeRedirectUri({ scheme: "cryptosaver" }),
+    redirectUri: "https://auth.expo.io/@dresden23i/crypto-saver",
   });
+
+  console.log(AuthSession.makeRedirectUri());
+  console.log("Client ID used:", EXPO_PUBLIC_GOOGLE_CLIENT_ID);
+
+  // Also log this for Google
+  console.log(
+    "Redirect URI to register in Google Console:",
+    AuthSession.makeRedirectUri({ useProxy: true } as any)
+  );
 
   useEffect(() => {
     if (response?.type === "success") {
@@ -33,10 +43,9 @@ export default function GoogleSignIn() {
         const token = await userCredential.user.getIdToken();
 
         await axios.post(
-          "http://192.168.253.2:5000/api/user/register",
+          `${API_URL}/api/user/register`,
           {
             email: userCredential.user.email,
-            firebaseId: userCredential.user.uid, // include firebaseId for backend
           },
           {
             headers: { Authorization: `Bearer ${token}` },

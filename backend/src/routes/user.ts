@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
+import axios from "axios";
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -23,18 +24,50 @@ router.post("/register", authenticate, async (req, res) => {
   res.json(user);
 });
 
+const cryptoIdMap: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  USDT: "tether",
+  BNB: "binancecoin",
+  SOL: "solana",
+};
+
 router.post("/save", authenticate, async (req, res) => {
-  const firebaseId = req.firebaseId!;
+  const firebaseId = (req as any).firebaseId;
   const { amount, crypto } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { firebaseId } });
-  if (!user) return res.status(404).json({ error: "User not found" });
+  const user = await prisma.user.findUnique({
+    where: { firebaseId },
+  });
+
+  if (!user) {
+    console.error("User not found in database for firebaseId:", firebaseId);
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Fetch live crypto price from CoinGecko
+  const priceRes = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price`,
+    {
+      params: {
+        ids: cryptoIdMap[crypto], // see below
+        vs_currencies: "usd",
+      },
+    }
+  );
+
+  const price = priceRes.data?.[cryptoIdMap[crypto]]?.usd;
+
+  if (!price) return res.status(400).json({ error: "Failed to fetch price" });
+
+  const cryptoQty = parseFloat(amount) / price;
 
   const saving = await prisma.saving.create({
     data: {
       userId: user.id,
       amount: parseFloat(amount),
       crypto,
+      cryptoQty,
     },
   });
 
@@ -42,16 +75,14 @@ router.post("/save", authenticate, async (req, res) => {
 });
 
 router.get("/savings", authenticate, async (req, res) => {
-  console.log("GET /savings hit");
-
-  const firebaseId = req.firebaseId!;
+  const firebaseId = (req as any).firebaseId;
   const user = await prisma.user.findUnique({
     where: { firebaseId },
     include: { savings: true },
   });
 
   if (!user) {
-    console.log("User not found in database for firebaseId:", firebaseId);
+    console.error("User not found in database for firebaseId:", firebaseId);
     return res.status(404).json({ error: "User not found" });
   }
 

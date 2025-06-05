@@ -11,11 +11,9 @@ export async function authenticate(
 
   try {
     const decoded = await admin.auth().verifyIdToken(token);
-
-    req.firebaseId = decoded.uid; // ✅ type-safe now
+    (req as any).firebaseId = decoded.uid;
     next();
   } catch (err) {
-    console.error("Token verification failed:", err);
     return res.status(401).json({ error: "Invalid token" });
   }
 }
