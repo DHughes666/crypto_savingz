@@ -12,20 +12,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "plugins": ["@react-native-google-signin/google-signin"],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.dresden23i.cryptosaver",
-      "googleServicesFile": "./GoogleService-Info.plist",
-      "iosUrlScheme": "com.googleusercontent.apps.109283458484-tnlefnboifmfqr4ojj6vbj6m8n9fer6i"
+      "supportsTablet": true
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.dresden23i.cryptosaver",
       "edgeToEdgeEnabled": true
     },
     "web": {

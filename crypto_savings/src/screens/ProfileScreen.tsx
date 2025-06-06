@@ -1,21 +1,37 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
-import { Text, Card, ActivityIndicator, Avatar } from "react-native-paper";
-import axios from "axios";
+import { Text, Card, ActivityIndicator, Button } from "react-native-paper";
 import { auth } from "../firebase/config";
+import axios from "axios";
 import Constants from "expo-constants";
 
-export default function ProfileScreen() {
+interface Saving {
+  amount: number;
+  crypto: string;
+  timestamp: string;
+}
+
+interface UserProfile {
+  email: string;
+  createdAt: string;
+  savings: Saving[];
+}
+
+export default function ProfileScreen({ navigation }: any) {
   const { API_URL } = Constants.expoConfig?.extra || {};
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const token = await currentUser.getIdToken();
       const res = await axios.get(`${API_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setProfile(res.data);
     } catch (err) {
       console.error("Failed to fetch profile:", err);
@@ -36,24 +52,56 @@ export default function ProfileScreen() {
     );
   }
 
+  if (!profile) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text variant="bodyMedium">Failed to load profile data.</Text>
+      </View>
+    );
+  }
+
+  const { email, createdAt, savings } = profile;
+  const totalUsd = savings.reduce((sum, s) => sum + s.amount, 0);
+
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <Card style={{ padding: 20, marginBottom: 20 }}>
-        <Avatar.Text label={profile.email.charAt(0).toUpperCase()} size={48} />
-        <Text variant="titleLarge" style={{ marginTop: 10 }}>
-          {profile.email}
-        </Text>
-        <Text>Total Entries: {profile.savings.length}</Text>
+      <Text variant="headlineMedium" style={{ marginBottom: 12 }}>
+        Profile
+      </Text>
+
+      <Card style={{ marginBottom: 12, padding: 16 }}>
+        <Text>Email: {email}</Text>
+        <Text>Joined: {new Date(createdAt).toDateString()}</Text>
       </Card>
 
-      {profile.savings.map((s: any, i: number) => (
-        <Card key={i} style={{ marginBottom: 10, padding: 16 }}>
-          <Text>
-            {s.crypto}: ${s.amount.toFixed(2)}
-          </Text>
-          <Text>{new Date(s.timestamp).toLocaleString()}</Text>
-        </Card>
-      ))}
+      <Card style={{ marginBottom: 12, padding: 16 }}>
+        <Text variant="titleMedium">Total Saved</Text>
+        <Text style={{ fontWeight: "bold", marginTop: 8 }}>
+          ${totalUsd.toFixed(2)}
+        </Text>
+      </Card>
+
+      <Card style={{ marginBottom: 12, padding: 16 }}>
+        <Text variant="titleMedium">Breakdown</Text>
+        {savings.length === 0 ? (
+          <Text style={{ color: "#888" }}>No savings yet.</Text>
+        ) : (
+          savings.map((s, index) => (
+            <Text key={index} style={{ marginTop: 4 }}>
+              • {s.crypto}: ${s.amount.toFixed(2)} on{" "}
+              {new Date(s.timestamp).toLocaleDateString()}
+            </Text>
+          ))
+        )}
+      </Card>
+
+      <Button
+        mode="contained"
+        onPress={() => navigation.goBack()}
+        style={{ marginTop: 20 }}
+      >
+        Back
+      </Button>
     </ScrollView>
   );
 }

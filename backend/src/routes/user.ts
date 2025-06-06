@@ -90,19 +90,20 @@ router.get("/savings", authenticate, async (req, res) => {
 });
 
 router.get("/profile", authenticate, async (req, res) => {
-  const firebaseId = req.firebaseId!;
+  const firebaseId = (req as any).firebaseId;
+
   const user = await prisma.user.findUnique({
     where: { firebaseId },
     select: {
       id: true,
       email: true,
+      createdAt: true,
       savings: {
         select: {
           amount: true,
           crypto: true,
           timestamp: true,
         },
-        orderBy: { timestamp: "desc" },
       },
     },
   });
@@ -110,6 +111,35 @@ router.get("/profile", authenticate, async (req, res) => {
   if (!user) return res.status(404).json({ error: "User not found" });
 
   res.json(user);
+});
+
+router.get("/notifications", authenticate, async (req, res) => {
+  const firebaseId = (req as any).firebaseId;
+
+  const user = await prisma.user.findUnique({
+    where: { firebaseId },
+    select: { id: true },
+  });
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  // Placeholder notifications — replace with DB table later
+  const notifications = [
+    {
+      id: 1,
+      title: "🎉 Welcome to CryptoSaver!",
+      message: "Your journey to smart crypto saving starts now.",
+      date: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      title: "🚀 BTC up 4% today!",
+      message: "You’re earning while others are guessing.",
+      date: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ];
+
+  res.json(notifications);
 });
 
 export default router;
