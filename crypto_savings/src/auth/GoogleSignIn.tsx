@@ -18,11 +18,12 @@ export default function GoogleSignIn() {
   } = Constants.expoConfig?.extra || {};
 
   const { API_URL } = Constants.expoConfig?.extra || {};
+  const redirectUri = "https://auth.expo.io/@dresden23i/crypto-saver";
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     androidClientId: EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    redirectUri: "https://auth.expo.io/@dresden23i/crypto-saver",
+    redirectUri,
   });
 
   console.log(AuthSession.makeRedirectUri());

@@ -32,15 +32,25 @@ export default function DashboardScreen({ navigation, route }: any) {
       }
 
       const token = await currentUser.getIdToken();
-      const res = await axios.get(
-        `${API_URL}/api/user/savings`, // Replace IP if needed
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setSavings(res.data);
-    } catch (err) {
-      console.error("Failed to fetch savings:", err);
+      const res = await axios.get(`${API_URL}/api/user/savings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // ✅ If user has no savings, res.data should be an empty array
+      if (Array.isArray(res.data)) {
+        setSavings(res.data);
+      } else {
+        console.warn("Unexpected response format:", res.data);
+        setSavings([]); // fallback
+      }
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        // ✅ No savings found (but user exists) — treat as empty state
+        console.info("No savings found — treating as empty");
+        setSavings([]);
+      } else {
+        console.error("Failed to fetch savings:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -181,14 +191,6 @@ export default function DashboardScreen({ navigation, route }: any) {
         style={{ marginTop: 20 }}
       >
         Add New Saving
-      </Button>
-
-      <Button
-        mode="contained"
-        onPress={() => auth.signOut()}
-        style={{ marginTop: 30 }}
-      >
-        Logout
       </Button>
     </ScrollView>
   );

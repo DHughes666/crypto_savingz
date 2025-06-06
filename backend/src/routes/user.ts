@@ -82,7 +82,7 @@ router.get("/savings", authenticate, async (req, res) => {
   });
 
   if (!user) {
-    console.error("User not found in database for firebaseId:", firebaseId);
+    console.error("No savings yet for user with firebaseId:", firebaseId);
     return res.status(404).json({ error: "User not found" });
   }
 

@@ -95,13 +95,19 @@ export default function ProfileScreen({ navigation }: any) {
         )}
       </Card>
 
-      <Button
-        mode="contained"
-        onPress={() => navigation.goBack()}
-        style={{ marginTop: 20 }}
-      >
-        Back
-      </Button>
+      <View style={{ marginTop: 20 }}>
+        <Button
+          mode="outlined"
+          onPress={() => navigation.navigate("Dashboard")}
+          style={{ marginBottom: 10 }}
+        >
+          Back to Dashboard
+        </Button>
+
+        <Button mode="contained" onPress={() => auth.signOut()}>
+          Logout
+        </Button>
+      </View>
     </ScrollView>
   );
 }
