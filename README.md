@@ -19,27 +19,36 @@ CryptoSaver is a cross-platform mobile app built with **Expo React Native**, pow
 ## 🧠 Developer Notes & Key Learnings
 
 ### 📦 Expo React Native
+
 <<<<<<< HEAD
 
 =======
->>>>>>> 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
+> > > > > > > 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
 - Always include a properly configured `metro.config.js` when using advanced features or asset loading.
 - React Native apps do **not** support `localhost` to connect to your backend — use your local IP address (get it via `ipconfig` on Windows or `ifconfig` on macOS/Linux).
 - Expo reads environment variables from `.env`, but only those prefixed with `EXPO_PUBLIC_` are accessible in the frontend.
 
 ### 🔐 Firebase Auth with React Native
+
 <<<<<<< HEAD
 
 =======
->>>>>>> 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
+> > > > > > > 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
 - Use `firebase/auth/react-native` and `@react-native-async-storage/async-storage` for correct persistence.
 - After sign-in or registration with Firebase, call your backend’s `/register` endpoint to create the user in your PostgreSQL DB.
 
 ### 🌍 Backend API Access
+
 <<<<<<< HEAD
 
 =======
->>>>>>> 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
+> > > > > > > 72fadd262d75e74d7b4715f8c764a4a8cd155229
+
 - The backend must run on the same Wi-Fi network as the mobile device.
 - Use `npx expo start -c` after changing `.env` or `app.config.ts` to clear Expo’s cache.
 - Add a `ping` route in your Express app for quick connectivity checks.
@@ -149,22 +158,23 @@ npx expo start --clear
 ## 🔧 API Endpoints
 
 <<<<<<< HEAD
-| Method | Endpoint             | Auth Required | Description                  |
+| Method | Endpoint | Auth Required | Description |
 | ------ | -------------------- | ------------- | ---------------------------- |
-| POST   | `/api/user/register` | ✅            | Upserts user in Neon DB      |
-| POST   | `/api/user/save`     | ✅            | Save crypto savings          |
-| GET    | `/api/user/savings`  | ✅            | Fetch user savings (grouped) |
-| GET    | `/api/user/profile`  | ✅            | Fetch user profile + history |
-| GET    | `/api/user/ping`     | ❌            | Check backend availability   |
+| POST | `/api/user/register` | ✅ | Upserts user in Neon DB |
+| POST | `/api/user/save` | ✅ | Save crypto savings |
+| GET | `/api/user/savings` | ✅ | Fetch user savings (grouped) |
+| GET | `/api/user/profile` | ✅ | Fetch user profile + history |
+| GET | `/api/user/ping` | ❌ | Check backend availability |
 =======
-| Method | Endpoint             | Auth Required | Description                     |
+| Method | Endpoint | Auth Required | Description |
 |--------|----------------------|----------------|---------------------------------|
-| POST   | `/api/user/register` | ✅             | Upserts user in Neon DB         |
-| POST   | `/api/user/save`     | ✅             | Save crypto savings             |
-| GET    | `/api/user/savings`  | ✅             | Fetch user savings (grouped)    |
-| GET    | `/api/user/profile`  | ✅             | Fetch user profile + history    |
-| GET    | `/api/user/ping`     | ❌             | Check backend availability      |
->>>>>>> 72fadd262d75e74d7b4715f8c764a4a8cd155229
+| POST | `/api/user/registgiter` | ✅ | Upserts user in Neon DB |
+| POST | `/api/user/save` | ✅ | Save crypto savings |
+| GET | `/api/user/savings` | ✅ | Fetch user savings (grouped) |
+| GET | `/api/user/profile` | ✅ | Fetch user profile + history |
+| GET | `/api/user/ping` | ❌ | Check backend availability |
+
+> > > > > > > 72fadd262d75e74d7b4715f8c764a4a8cd155229
 
 ---
 
