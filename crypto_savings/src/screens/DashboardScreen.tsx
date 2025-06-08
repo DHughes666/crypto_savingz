@@ -16,6 +16,7 @@ export default function DashboardScreen({ navigation, route }: any) {
   const { API_URL } = Constants.expoConfig?.extra || {};
   const [savings, setSavings] = useState<Saving[]>([]);
   const [loading, setLoading] = useState(true);
+  const [priceError, setPriceError] = useState(false);
   const [priceMap, setPriceMap] = useState<Record<string, number>>({});
   const [priceNgnMap, setPriceNgnMap] = useState<Record<string, number>>({});
   const [priceChangeMap, setPriceChangeMap] = useState<Record<string, number>>(
@@ -58,7 +59,17 @@ export default function DashboardScreen({ navigation, route }: any) {
 
   const fetchPrices = async () => {
     try {
-      const ids = ["bitcoin", "ethereum", "tether", "solana", "binancecoin"];
+      const ids = [
+        "bitcoin",
+        "ethereum",
+        "tether",
+        "solana",
+        "binancecoin",
+        "ripple", // XRP
+        "pumpai", // PUMPAI
+        "hamster", // HMSTR
+      ];
+
       const res = await axios.get(
         "https://api.coingecko.com/api/v3/simple/price",
         {
@@ -70,28 +81,44 @@ export default function DashboardScreen({ navigation, route }: any) {
         }
       );
 
+      // 🔒 Helper to safely access nested values with fallback
+      const safeGet = (obj: any, path: string[], fallback = 0) =>
+        path.reduce(
+          (o, key) => (o?.[key] !== undefined ? o[key] : fallback),
+          obj
+        );
+
       const usdMap: Record<string, number> = {
-        BTC: res.data.bitcoin.usd,
-        ETH: res.data.ethereum.usd,
-        USDT: res.data.tether.usd,
-        SOL: res.data.solana.usd,
-        BNB: res.data.binancecoin.usd,
+        BTC: safeGet(res.data, ["bitcoin", "usd"]),
+        ETH: safeGet(res.data, ["ethereum", "usd"]),
+        USDT: safeGet(res.data, ["tether", "usd"]),
+        SOL: safeGet(res.data, ["solana", "usd"]),
+        BNB: safeGet(res.data, ["binancecoin", "usd"]),
+        XRP: safeGet(res.data, ["ripple", "usd"]),
+        PUMPAI: safeGet(res.data, ["pumpai", "usd"]),
+        HMSTR: safeGet(res.data, ["hamster", "usd"]),
       };
 
       const ngnMap: Record<string, number> = {
-        BTC: res.data.bitcoin.ngn,
-        ETH: res.data.ethereum.ngn,
-        USDT: res.data.tether.ngn,
-        SOL: res.data.solana.ngn,
-        BNB: res.data.binancecoin.ngn,
+        BTC: safeGet(res.data, ["bitcoin", "ngn"]),
+        ETH: safeGet(res.data, ["ethereum", "ngn"]),
+        USDT: safeGet(res.data, ["tether", "ngn"]),
+        SOL: safeGet(res.data, ["solana", "ngn"]),
+        BNB: safeGet(res.data, ["binancecoin", "ngn"]),
+        XRP: safeGet(res.data, ["ripple", "ngn"]),
+        PUMPAI: safeGet(res.data, ["pumpai", "ngn"]),
+        HMSTR: safeGet(res.data, ["hamster", "ngn"]),
       };
 
       const changeMap: Record<string, number> = {
-        BTC: res.data.bitcoin.usd_24h_change,
-        ETH: res.data.ethereum.usd_24h_change,
-        USDT: res.data.tether.usd_24h_change,
-        SOL: res.data.solana.usd_24h_change,
-        BNB: res.data.binancecoin.usd_24h_change,
+        BTC: safeGet(res.data, ["bitcoin", "usd_24h_change"]),
+        ETH: safeGet(res.data, ["ethereum", "usd_24h_change"]),
+        USDT: safeGet(res.data, ["tether", "usd_24h_change"]),
+        SOL: safeGet(res.data, ["solana", "usd_24h_change"]),
+        BNB: safeGet(res.data, ["binancecoin", "usd_24h_change"]),
+        XRP: safeGet(res.data, ["ripple", "usd_24h_change"]),
+        PUMPAI: safeGet(res.data, ["pumpai", "usd_24h_change"]),
+        HMSTR: safeGet(res.data, ["hamster", "usd_24h_change"]),
       };
 
       setPriceMap(usdMap);
@@ -99,6 +126,7 @@ export default function DashboardScreen({ navigation, route }: any) {
       setPriceChangeMap(changeMap);
     } catch (err) {
       console.error("Failed to fetch prices from CoinGecko:", err);
+      setPriceError(true); // ⚠️ Trigger UI warning
     }
   };
 
@@ -149,6 +177,16 @@ export default function DashboardScreen({ navigation, route }: any) {
       <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
         Your Crypto Savings
       </Text>
+      {priceError && (
+        <Card
+          style={{ backgroundColor: "#fff3cd", padding: 12, marginBottom: 16 }}
+        >
+          <Text style={{ color: "#856404" }}>
+            ⚠️ Live prices could not be fetched. Displayed values may be
+            outdated.
+          </Text>
+        </Card>
+      )}
 
       <Card style={{ marginBottom: 16, padding: 16 }}>
         <Text>Total Saved: ${totalUsd.toFixed(2)}</Text>

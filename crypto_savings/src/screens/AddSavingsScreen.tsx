@@ -9,7 +9,16 @@ export default function AddSavingScreen({ navigation }: any) {
   const { API_URL } = Constants.expoConfig?.extra || {};
   const [amount, setAmount] = useState("");
   const [crypto, setCrypto] = useState("BTC");
-  const cryptoOptions = ["BTC", "ETH", "USDT", "SOL", "BNB"];
+  const cryptoOptions = [
+    "BTC",
+    "ETH",
+    "USDT",
+    "SOL",
+    "BNB",
+    "XRP",
+    "PUMPAI",
+    "HMSTR",
+  ];
   const [menuVisible, setMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 

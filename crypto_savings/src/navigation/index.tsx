@@ -11,7 +11,8 @@ import LoginScreen from "../auth/LoginScreen";
 import RegisterScreen from "../auth/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import AddSavingScreen from "../screens/AddSavingsScreen";
-import ProfileScreen from "../screens/ProfileScreen"; // Make sure this exists
+import ProfileScreen from "../screens/ProfileScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -62,6 +63,15 @@ function MainTabs() {
               color={color}
               size={size}
             />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="bell" color={color} size={size} />
           ),
         }}
       />
