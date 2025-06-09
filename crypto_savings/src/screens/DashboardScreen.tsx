@@ -1,61 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
 import { Text, Card, Button, ActivityIndicator } from "react-native-paper";
+import { useUser } from "../context/UserContext";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
 
-interface Saving {
-  amount: number; // USD
-  crypto: string;
-  cryptoQty?: number; // New (optional, for future use)
-  timestamp: string;
-}
+const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function DashboardScreen({ navigation, route }: any) {
-  const { API_URL } = Constants.expoConfig?.extra || {};
-  const [savings, setSavings] = useState<Saving[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [priceError, setPriceError] = useState(false);
+  const { user, loading: userLoading, refreshUser } = useUser();
   const [priceMap, setPriceMap] = useState<Record<string, number>>({});
   const [priceNgnMap, setPriceNgnMap] = useState<Record<string, number>>({});
   const [priceChangeMap, setPriceChangeMap] = useState<Record<string, number>>(
     {}
   );
-  const [usdToNgn, setUsdToNgn] = useState<number>(0);
-
-  const fetchSavings = async () => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.warn("User not authenticated");
-        return;
-      }
-
-      const token = await currentUser.getIdToken();
-      const res = await axios.get(`${API_URL}/api/user/savings`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // ✅ If user has no savings, res.data should be an empty array
-      if (Array.isArray(res.data)) {
-        setSavings(res.data);
-      } else {
-        console.warn("Unexpected response format:", res.data);
-        setSavings([]); // fallback
-      }
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        // ✅ No savings found (but user exists) — treat as empty state
-        console.info("No savings found — treating as empty");
-        setSavings([]);
-      } else {
-        console.error("Failed to fetch savings:", err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [priceError, setPriceError] = useState(false);
 
   const fetchPrices = async () => {
     try {
@@ -65,11 +25,10 @@ export default function DashboardScreen({ navigation, route }: any) {
         "tether",
         "solana",
         "binancecoin",
-        "ripple", // XRP
-        "pumpai", // PUMPAI
-        "hamster", // HMSTR
+        "ripple",
+        "pumpai",
+        "hamster",
       ];
-
       const res = await axios.get(
         "https://api.coingecko.com/api/v3/simple/price",
         {
@@ -81,14 +40,13 @@ export default function DashboardScreen({ navigation, route }: any) {
         }
       );
 
-      // 🔒 Helper to safely access nested values with fallback
       const safeGet = (obj: any, path: string[], fallback = 0) =>
         path.reduce(
           (o, key) => (o?.[key] !== undefined ? o[key] : fallback),
           obj
         );
 
-      const usdMap: Record<string, number> = {
+      setPriceMap({
         BTC: safeGet(res.data, ["bitcoin", "usd"]),
         ETH: safeGet(res.data, ["ethereum", "usd"]),
         USDT: safeGet(res.data, ["tether", "usd"]),
@@ -97,9 +55,9 @@ export default function DashboardScreen({ navigation, route }: any) {
         XRP: safeGet(res.data, ["ripple", "usd"]),
         PUMPAI: safeGet(res.data, ["pumpai", "usd"]),
         HMSTR: safeGet(res.data, ["hamster", "usd"]),
-      };
+      });
 
-      const ngnMap: Record<string, number> = {
+      setPriceNgnMap({
         BTC: safeGet(res.data, ["bitcoin", "ngn"]),
         ETH: safeGet(res.data, ["ethereum", "ngn"]),
         USDT: safeGet(res.data, ["tether", "ngn"]),
@@ -108,9 +66,9 @@ export default function DashboardScreen({ navigation, route }: any) {
         XRP: safeGet(res.data, ["ripple", "ngn"]),
         PUMPAI: safeGet(res.data, ["pumpai", "ngn"]),
         HMSTR: safeGet(res.data, ["hamster", "ngn"]),
-      };
+      });
 
-      const changeMap: Record<string, number> = {
+      setPriceChangeMap({
         BTC: safeGet(res.data, ["bitcoin", "usd_24h_change"]),
         ETH: safeGet(res.data, ["ethereum", "usd_24h_change"]),
         USDT: safeGet(res.data, ["tether", "usd_24h_change"]),
@@ -119,52 +77,22 @@ export default function DashboardScreen({ navigation, route }: any) {
         XRP: safeGet(res.data, ["ripple", "usd_24h_change"]),
         PUMPAI: safeGet(res.data, ["pumpai", "usd_24h_change"]),
         HMSTR: safeGet(res.data, ["hamster", "usd_24h_change"]),
-      };
-
-      setPriceMap(usdMap);
-      setPriceNgnMap(ngnMap);
-      setPriceChangeMap(changeMap);
+      });
     } catch (err) {
-      console.error("Failed to fetch prices from CoinGecko:", err);
-      setPriceError(true); // ⚠️ Trigger UI warning
+      console.error("Failed to fetch price data:", err);
+      setPriceError(true);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchSavings();
-        fetchPrices();
-      } else {
-        setLoading(false);
-      }
-    });
-
+    fetchPrices();
     if (route?.params?.refresh) {
-      fetchSavings();
+      refreshUser();
       navigation.setParams({ refresh: false });
     }
-    return unsubscribe;
   }, [route?.params?.refresh]);
 
-  const groupByCoin = (data: Saving[]) => {
-    return data.reduce((acc: Record<string, number>, curr) => {
-      acc[curr.crypto] = (acc[curr.crypto] || 0) + curr.amount;
-      return acc;
-    }, {});
-  };
-
-  const total = savings.reduce((sum, s) => sum + s.amount, 0);
-  const totalUsd = total; // it's already in USD
-  const totalNgn = savings.reduce((sum, s) => {
-    const ngnPrice = priceNgnMap[s.crypto] || 0;
-    const cryptoAmount = s.amount / (priceMap[s.crypto] || 1);
-    return sum + cryptoAmount * ngnPrice;
-  }, 0);
-
-  const grouped = groupByCoin(savings);
-
-  if (loading) {
+  if (userLoading || !user) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -172,18 +100,35 @@ export default function DashboardScreen({ navigation, route }: any) {
     );
   }
 
+  const savings = user.savings || [];
+  const groupByCoin = savings.reduce(
+    (acc: Record<string, number>, curr: any) => {
+      acc[curr.crypto] = (acc[curr.crypto] || 0) + curr.amount;
+      return acc;
+    },
+    {}
+  );
+
+  const totalUsd = savings.reduce((sum, s) => sum + s.amount, 0);
+  const totalNgn = savings.reduce((sum, s) => {
+    const usdPrice = priceMap[s.crypto] || 1;
+    const ngnPrice = priceNgnMap[s.crypto] || 0;
+    const cryptoQty = s.amount / usdPrice;
+    return sum + cryptoQty * ngnPrice;
+  }, 0);
+
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
-        Your Crypto Savings
+      <Text variant="headlineMedium" style={{ marginBottom: 12 }}>
+        Welcome {user.firstName || user.id}
       </Text>
+
       {priceError && (
         <Card
           style={{ backgroundColor: "#fff3cd", padding: 12, marginBottom: 16 }}
         >
           <Text style={{ color: "#856404" }}>
-            ⚠️ Live prices could not be fetched. Displayed values may be
-            outdated.
+            ⚠️ Live prices could not be fetched. Values may be outdated.
           </Text>
         </Card>
       )}
@@ -195,11 +140,11 @@ export default function DashboardScreen({ navigation, route }: any) {
         </Text>
       </Card>
 
-      {Object.entries(grouped).map(([coin, usdAmount]) => {
-        const usdPrice = priceMap[coin] || 1; // fallback to 1 to avoid NaN
+      {Object.entries(groupByCoin).map(([coin, usdAmount]) => {
+        const usdPrice = priceMap[coin] || 1;
         const ngnPrice = priceNgnMap[coin] || 0;
-        const cryptoAmount = usdAmount / usdPrice;
-        const ngnValue = cryptoAmount * ngnPrice;
+        const cryptoQty = usdAmount / usdPrice;
+        const nairaValue = cryptoQty * ngnPrice;
         const change = priceChangeMap[coin];
 
         return (
@@ -209,8 +154,10 @@ export default function DashboardScreen({ navigation, route }: any) {
             </Text>
             <Text style={{ color: "#555", marginTop: 4 }}>
               ≈ ₦
-              {ngnValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              ~ ({cryptoAmount.toFixed(6)} {coin})
+              {nairaValue.toLocaleString(undefined, {
+                maximumFractionDigits: 2,
+              })}{" "}
+              ~ ({cryptoQty.toFixed(6)} {coin})
             </Text>
             {change !== undefined && (
               <Text
@@ -222,6 +169,27 @@ export default function DashboardScreen({ navigation, route }: any) {
           </Card>
         );
       })}
+
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <Text variant="titleMedium">Savings History</Text>
+        {savings.length === 0 ? (
+          <Text style={{ color: "#888" }}>No savings yet.</Text>
+        ) : (
+          [...savings]
+            .sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime()
+            )
+            .slice(0, 4)
+            .map((s, i) => (
+              <Text key={i} style={{ marginTop: 4 }}>
+                • {s.crypto}: ${s.amount.toFixed(2)} on{" "}
+                {new Date(s.timestamp).toLocaleString()}
+              </Text>
+            ))
+        )}
+      </Card>
 
       <Button
         mode="outlined"

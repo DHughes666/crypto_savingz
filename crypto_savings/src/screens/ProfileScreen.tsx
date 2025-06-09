@@ -1,50 +1,58 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
-import { Text, Card, ActivityIndicator, Button } from "react-native-paper";
+import {
+  Text,
+  TextInput,
+  Button,
+  Card,
+  ActivityIndicator,
+  Snackbar,
+} from "react-native-paper";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
+import { useUser } from "../context/UserContext";
 
-interface Saving {
-  amount: number;
-  crypto: string;
-  timestamp: string;
-}
-
-interface UserProfile {
-  email: string;
-  createdAt: string;
-  savings: Saving[];
-}
+const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function ProfileScreen({ navigation }: any) {
-  const { API_URL } = Constants.expoConfig?.extra || {};
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, refreshUser } = useUser();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [error, setError] = useState("");
 
-  const fetchProfile = async () => {
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+  }, [user]);
+
+  const updateProfile = async () => {
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      const token = await currentUser.getIdToken();
-      const res = await axios.get(`${API_URL}/api/user/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setProfile(res.data);
+      setUpdating(true);
+      const token = await auth.currentUser?.getIdToken();
+      await axios.post(
+        `${API_URL}/api/user/profile/update`,
+        { firstName, lastName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSnackbarVisible(true);
+      await refreshUser(); // sync latest info
     } catch (err) {
-      console.error("Failed to fetch profile:", err);
+      console.error("Failed to update profile:", err);
+      setError("Profile update failed.");
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  const changesMade =
+    user && (firstName !== user.firstName || lastName !== user.lastName);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -52,46 +60,66 @@ export default function ProfileScreen({ navigation }: any) {
     );
   }
 
-  if (!profile) {
-    return (
-      <View style={{ padding: 20 }}>
-        <Text variant="bodyMedium">Failed to load profile data.</Text>
-      </View>
-    );
-  }
-
-  const { email, createdAt, savings } = profile;
-  const totalUsd = savings.reduce((sum, s) => sum + s.amount, 0);
+  const totalUsd =
+    user.savings?.reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <Text variant="headlineMedium" style={{ marginBottom: 12 }}>
+      <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
         Profile
       </Text>
 
-      <Card style={{ marginBottom: 12, padding: 16 }}>
-        <Text>Email: {email}</Text>
-        <Text>Joined: {new Date(createdAt).toDateString()}</Text>
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <TextInput label="Email" value={user.email} disabled />
+        <TextInput
+          label="First Name"
+          value={firstName}
+          onChangeText={setFirstName}
+          style={{ marginTop: 12 }}
+        />
+        <TextInput
+          label="Last Name"
+          value={lastName}
+          onChangeText={setLastName}
+          style={{ marginTop: 12 }}
+        />
+        {changesMade && (
+          <Button
+            mode="contained"
+            onPress={updateProfile}
+            loading={updating}
+            style={{ marginTop: 16 }}
+          >
+            Save Changes
+          </Button>
+        )}
       </Card>
 
-      <Card style={{ marginBottom: 12, padding: 16 }}>
+      <Card style={{ marginBottom: 16, padding: 16 }}>
         <Text variant="titleMedium">Total Saved</Text>
         <Text style={{ fontWeight: "bold", marginTop: 8 }}>
           ${totalUsd.toFixed(2)}
         </Text>
       </Card>
 
-      <Card style={{ marginBottom: 12, padding: 16 }}>
-        <Text variant="titleMedium">Breakdown</Text>
-        {savings.length === 0 ? (
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <Text variant="titleMedium">Savings History</Text>
+        {user.savings?.length === 0 ? (
           <Text style={{ color: "#888" }}>No savings yet.</Text>
         ) : (
-          savings.map((s, index) => (
-            <Text key={index} style={{ marginTop: 4 }}>
-              • {s.crypto}: ${s.amount.toFixed(2)} on{" "}
-              {new Date(s.timestamp).toLocaleDateString()}
-            </Text>
-          ))
+          [...user.savings]
+            .sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime()
+            )
+            .slice(0, 8)
+            .map((s: any, i: number) => (
+              <Text key={i} style={{ marginTop: 4 }}>
+                • {s.crypto}: ${s.amount.toFixed(2)} on{" "}
+                {new Date(s.timestamp).toLocaleString()}
+              </Text>
+            ))
         )}
       </Card>
 
@@ -108,6 +136,22 @@ export default function ProfileScreen({ navigation }: any) {
           Logout
         </Button>
       </View>
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
+        Profile updated successfully!
+      </Snackbar>
+
+      <Snackbar
+        visible={!!error}
+        onDismiss={() => setError("")}
+        duration={3000}
+      >
+        {error}
+      </Snackbar>
     </ScrollView>
   );
 }

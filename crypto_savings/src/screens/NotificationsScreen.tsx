@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
 import { Text, Card, ActivityIndicator } from "react-native-paper";
+import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
-import { auth } from "../firebase/config";
 
 interface Notification {
-  id: string;
+  id: number;
   title: string;
   message: string;
-  createdAt: string;
+  date: string;
 }
 
 export default function NotificationsScreen() {
@@ -27,12 +27,7 @@ export default function NotificationsScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (Array.isArray(res.data)) {
-        setNotifications(res.data);
-      } else {
-        console.warn("Unexpected notifications response:", res.data);
-        setNotifications([]);
-      }
+      setNotifications(res.data);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     } finally {
@@ -57,18 +52,15 @@ export default function NotificationsScreen() {
       <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
         Notifications
       </Text>
-
       {notifications.length === 0 ? (
-        <Card style={{ padding: 16 }}>
-          <Text>No notifications yet.</Text>
-        </Card>
+        <Text>No notifications yet.</Text>
       ) : (
         notifications.map((n) => (
           <Card key={n.id} style={{ marginBottom: 12, padding: 16 }}>
             <Text style={{ fontWeight: "bold" }}>{n.title}</Text>
             <Text style={{ marginTop: 4 }}>{n.message}</Text>
-            <Text style={{ color: "#888", marginTop: 6 }}>
-              {new Date(n.createdAt).toLocaleString()}
+            <Text style={{ color: "#888", marginTop: 4 }}>
+              {new Date(n.date).toLocaleString()}
             </Text>
           </Card>
         ))

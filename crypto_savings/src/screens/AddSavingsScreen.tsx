@@ -4,11 +4,17 @@ import { TextInput, Button, Text, Menu } from "react-native-paper";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
+import { useUser } from "../context/UserContext"; // ✅ Import context
+
+const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function AddSavingScreen({ navigation }: any) {
-  const { API_URL } = Constants.expoConfig?.extra || {};
   const [amount, setAmount] = useState("");
   const [crypto, setCrypto] = useState("BTC");
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { refreshUser } = useUser(); // ✅ Access refreshUser
+
   const cryptoOptions = [
     "BTC",
     "ETH",
@@ -19,8 +25,6 @@ export default function AddSavingScreen({ navigation }: any) {
     "PUMPAI",
     "HMSTR",
   ];
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     if (!amount || isNaN(Number(amount))) {
@@ -31,13 +35,17 @@ export default function AddSavingScreen({ navigation }: any) {
     try {
       setLoading(true);
       const token = await auth.currentUser?.getIdToken();
+
       await axios.post(
         `${API_URL}/api/user/save`,
         { amount: parseFloat(amount), crypto },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      await refreshUser(); // ✅ Refresh savings and profile data in context
+
       Alert.alert("Success", "Saving added!");
-      navigation.navigate("Dashboard", { refresh: true });
+      navigation.navigate("Dashboard");
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Failed to add saving.");
@@ -68,6 +76,7 @@ export default function AddSavingScreen({ navigation }: any) {
         >
           {crypto || "Select Crypto"}
         </Button>
+
         <Menu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
