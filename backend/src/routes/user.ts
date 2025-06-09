@@ -23,9 +23,9 @@ router.post("/register", authenticate, async (req, res) => {
       create: {
         firebaseId,
         email,
-        role: "user",
-        firstName: "New",
-        lastName: "User",
+        role: "",
+        firstName: "",
+        lastName: "",
       },
     });
 

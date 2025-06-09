@@ -5,8 +5,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAuth } from "../auth/AuthProvider";
 import { useNotification } from "../context/NotificationContext";
+import { useUnifiedAuth } from "../context/UnifiedAuthProvider";
 
 import LoginScreen from "../auth/LoginScreen";
 import RegisterScreen from "../auth/RegisterScreen";
@@ -20,6 +20,7 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const { unreadCount } = useNotification();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -83,16 +84,18 @@ function MainTabs() {
 }
 
 export default function Navigation() {
-  const { user } = useAuth();
+  const { firebaseUser, loading } = useUnifiedAuth();
 
-  if (user === undefined) {
-    return <Text>Loading...</Text>;
+  if (loading) {
+    return (
+      <Text style={{ textAlign: "center", marginTop: 100 }}>Loading...</Text>
+    );
   }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
+        {firebaseUser ? (
           <Stack.Screen name="Main" component={MainTabs} />
         ) : (
           <>

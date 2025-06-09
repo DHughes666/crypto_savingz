@@ -11,12 +11,13 @@ import {
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
-import { useUser } from "../context/UserContext";
+import { useUnifiedAuth } from "../context/UnifiedAuthProvider"; // ✅ updated import
 
 const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function ProfileScreen({ navigation }: any) {
-  const { user, loading, refreshUser } = useUser();
+  const { userProfile, loading, refreshUserProfile } = useUnifiedAuth(); // ✅ updated hook
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -24,11 +25,11 @@ export default function ProfileScreen({ navigation }: any) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
+    if (userProfile) {
+      setFirstName(userProfile.firstName || "");
+      setLastName(userProfile.lastName || "");
     }
-  }, [user]);
+  }, [userProfile]);
 
   const updateProfile = async () => {
     try {
@@ -40,7 +41,7 @@ export default function ProfileScreen({ navigation }: any) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSnackbarVisible(true);
-      await refreshUser(); // sync latest info
+      await refreshUserProfile(); // ✅ updated method
     } catch (err) {
       console.error("Failed to update profile:", err);
       setError("Profile update failed.");
@@ -50,9 +51,10 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const changesMade =
-    user && (firstName !== user.firstName || lastName !== user.lastName);
+    userProfile &&
+    (firstName !== userProfile.firstName || lastName !== userProfile.lastName);
 
-  if (loading || !user) {
+  if (loading || !userProfile) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -61,7 +63,8 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   const totalUsd =
-    user.savings?.reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+    userProfile.savings?.reduce((sum: number, s: any) => sum + s.amount, 0) ||
+    0;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -70,7 +73,7 @@ export default function ProfileScreen({ navigation }: any) {
       </Text>
 
       <Card style={{ marginBottom: 16, padding: 16 }}>
-        <TextInput label="Email" value={user.email} disabled />
+        <TextInput label="Email" value={userProfile.email} disabled />
         <TextInput
           label="First Name"
           value={firstName}
@@ -104,10 +107,10 @@ export default function ProfileScreen({ navigation }: any) {
 
       <Card style={{ marginBottom: 16, padding: 16 }}>
         <Text variant="titleMedium">Savings History</Text>
-        {user.savings?.length === 0 ? (
+        {userProfile.savings?.length === 0 ? (
           <Text style={{ color: "#888" }}>No savings yet.</Text>
         ) : (
-          [...user.savings]
+          [...userProfile.savings]
             .sort(
               (a, b) =>
                 new Date(b.timestamp).getTime() -

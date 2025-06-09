@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import GoogleSignIn from "./GoogleSignIn";
@@ -47,8 +48,8 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <>
-      <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ flex: 1, padding: 16 }}>
+      <View>
         <Text variant="titleLarge">Login</Text>
         <TextInput label="Email" value={email} onChangeText={setEmail} />
         <TextInput
@@ -66,6 +67,6 @@ export default function LoginScreen({ navigation }: any) {
         </Button>
       </View>
       <GoogleSignIn />
-    </>
+    </SafeAreaView>
   );
 }

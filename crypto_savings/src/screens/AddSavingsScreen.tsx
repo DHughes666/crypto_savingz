@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { View, Alert } from "react-native";
 import { TextInput, Button, Text, Menu } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
-import { useUser } from "../context/UserContext"; // ✅ Import context
+import { useUnifiedAuth } from "../context/UnifiedAuthProvider"; // ✅ Updated import
 
 const { API_URL } = Constants.expoConfig?.extra || {};
 
@@ -13,7 +14,7 @@ export default function AddSavingScreen({ navigation }: any) {
   const [crypto, setCrypto] = useState("BTC");
   const [menuVisible, setMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { refreshUser } = useUser(); // ✅ Access refreshUser
+  const { refreshUserProfile } = useUnifiedAuth(); // ✅ Updated hook
 
   const cryptoOptions = [
     "BTC",
@@ -42,10 +43,10 @@ export default function AddSavingScreen({ navigation }: any) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      await refreshUser(); // ✅ Refresh savings and profile data in context
+      await refreshUserProfile(); // ✅ Sync updated savings
 
       Alert.alert("Success", "Saving added!");
-      navigation.navigate("Dashboard");
+      navigation.navigate("Dashboard", { refresh: true }); // ✅ Optional: trigger refetch
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Failed to add saving.");
@@ -55,7 +56,7 @@ export default function AddSavingScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ flex: 1, padding: 16 }}>
       <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
         Add New Saving
       </Text>
@@ -98,6 +99,6 @@ export default function AddSavingScreen({ navigation }: any) {
       <Button mode="contained" loading={loading} onPress={handleSave}>
         Save
       </Button>
-    </View>
+    </SafeAreaView>
   );
 }

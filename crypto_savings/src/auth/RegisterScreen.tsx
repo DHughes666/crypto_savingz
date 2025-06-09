@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebase/config";
 import axios from "axios";
 import Constants from "expo-constants";
@@ -46,7 +47,7 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ flex: 1, padding: 16 }}>
       <Text variant="titleLarge">Register</Text>
       <TextInput label="Email" value={email} onChangeText={setEmail} />
       <TextInput
@@ -66,6 +67,6 @@ export default function RegisterScreen({ navigation }: any) {
       <Button onPress={() => navigation.navigate("Login")}>
         Already have an account? Login
       </Button>
-    </View>
+    </SafeAreaView>
   );
 }

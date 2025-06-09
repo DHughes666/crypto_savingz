@@ -43,7 +43,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const fetchUser = async () => {
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
 
       const token = await currentUser.getIdToken();
       const res = await axios.get(`${API_URL}/api/user/profile`, {

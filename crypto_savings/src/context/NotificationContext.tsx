@@ -39,6 +39,7 @@ export const NotificationProvider = ({
       setUnreadCount(res.data.count);
     } catch (err) {
       console.error("Failed to fetch unread count:", err);
+      setUnreadCount(0);
     }
   };
 

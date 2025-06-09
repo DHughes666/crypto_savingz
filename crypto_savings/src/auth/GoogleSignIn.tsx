@@ -26,15 +26,6 @@ export default function GoogleSignIn() {
     redirectUri,
   });
 
-  console.log(AuthSession.makeRedirectUri());
-  console.log("Client ID used:", EXPO_PUBLIC_GOOGLE_CLIENT_ID);
-
-  // Also log this for Google
-  console.log(
-    "Redirect URI to register in Google Console:",
-    AuthSession.makeRedirectUri({ useProxy: true } as any)
-  );
-
   useEffect(() => {
     if (response?.type === "success") {
       const { id_token } = response.params;

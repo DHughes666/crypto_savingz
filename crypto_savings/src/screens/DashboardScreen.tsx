@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
 import { Text, Card, Button, ActivityIndicator } from "react-native-paper";
-import { useUser } from "../context/UserContext";
-import { auth } from "../firebase/config";
+import { useUnifiedAuth } from "../context/UnifiedAuthProvider"; // ✅ NEW
 import axios from "axios";
 import Constants from "expo-constants";
 
 const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function DashboardScreen({ navigation, route }: any) {
-  const { user, loading: userLoading, refreshUser } = useUser();
+  const {
+    userProfile,
+    loading: userLoading,
+    refreshUserProfile,
+  } = useUnifiedAuth(); // ✅ UPDATED HOOK
+
   const [priceMap, setPriceMap] = useState<Record<string, number>>({});
   const [priceNgnMap, setPriceNgnMap] = useState<Record<string, number>>({});
   const [priceChangeMap, setPriceChangeMap] = useState<Record<string, number>>(
@@ -87,12 +91,12 @@ export default function DashboardScreen({ navigation, route }: any) {
   useEffect(() => {
     fetchPrices();
     if (route?.params?.refresh) {
-      refreshUser();
+      refreshUserProfile(); // ✅ NEW
       navigation.setParams({ refresh: false });
     }
   }, [route?.params?.refresh]);
 
-  if (userLoading || !user) {
+  if (userLoading || !userProfile) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -100,7 +104,7 @@ export default function DashboardScreen({ navigation, route }: any) {
     );
   }
 
-  const savings = user.savings || [];
+  const savings = userProfile.savings || [];
   const groupByCoin = savings.reduce(
     (acc: Record<string, number>, curr: any) => {
       acc[curr.crypto] = (acc[curr.crypto] || 0) + curr.amount;
@@ -120,7 +124,7 @@ export default function DashboardScreen({ navigation, route }: any) {
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
       <Text variant="headlineMedium" style={{ marginBottom: 12 }}>
-        Welcome {user.firstName || user.id}
+        Welcome {userProfile.firstName || `User_${userProfile.id}`}
       </Text>
 
       {priceError && (
