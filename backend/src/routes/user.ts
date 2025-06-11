@@ -36,6 +36,46 @@ router.post("/register", authenticate, async (req, res) => {
   }
 });
 
+// 🏆 Get Leaderboard (Top 10 users by total saved)
+router.get("/leaderboard", async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        savings: {
+          select: {
+            amount: true,
+          },
+        },
+      },
+    });
+
+    const ranked = users
+      .map((user) => {
+        const total = user.savings.reduce((sum, s) => sum + s.amount, 0);
+        return {
+          id: user.id,
+          email: user.email,
+          name:
+            user.firstName || user.lastName
+              ? `${user.firstName} ${user.lastName}`.trim()
+              : user.email,
+          totalSaved: total,
+        };
+      })
+      .sort((a, b) => b.totalSaved - a.totalSaved)
+      .slice(0, 10);
+
+    res.json(ranked);
+  } catch (err) {
+    console.error("Leaderboard fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
 // 🔁 Update User Profile
 router.post("/profile/update", authenticate, async (req, res) => {
   try {
@@ -273,6 +313,8 @@ router.post("/admin/send-notification", authenticate, async (req, res) => {
         senderId: sender.id,
       },
     });
+    if (!sender || sender.role !== "admin")
+      return res.status(404).json({ error: "Not an Admin" });
 
     res.json({ success: true, fcmResult });
   } catch (err) {

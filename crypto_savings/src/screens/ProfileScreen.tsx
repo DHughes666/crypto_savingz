@@ -65,6 +65,7 @@ export default function ProfileScreen({ navigation }: any) {
   const totalUsd =
     userProfile.savings?.reduce((sum: number, s: any) => sum + s.amount, 0) ||
     0;
+  const isAdmin = userProfile?.role === "admin";
 
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -125,6 +126,15 @@ export default function ProfileScreen({ navigation }: any) {
             ))
         )}
       </Card>
+      {isAdmin && (
+        <Button
+          mode="outlined"
+          onPress={() => navigation.navigate("SendNotification")}
+          style={{ marginBottom: 10 }}
+        >
+          Send Notification (Admin)
+        </Button>
+      )}
 
       <View style={{ marginTop: 20 }}>
         <Button

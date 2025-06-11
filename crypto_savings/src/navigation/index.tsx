@@ -14,6 +14,8 @@ import DashboardScreen from "../screens/DashboardScreen";
 import AddSavingScreen from "../screens/AddSavingsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
+import SendNotificationScreen from "../screens/SendNotificationScreen";
+import LeaderboardScreen from "../screens/LeaderboardScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -56,6 +58,21 @@ function MainTabs() {
           ),
         }}
       />
+
+      <Tab.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="trophy-award"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -84,7 +101,7 @@ function MainTabs() {
 }
 
 export default function Navigation() {
-  const { firebaseUser, loading } = useUnifiedAuth();
+  const { firebaseUser, loading, userProfile } = useUnifiedAuth(); // ✅ get userData to check role
 
   if (loading) {
     return (
@@ -92,11 +109,21 @@ export default function Navigation() {
     );
   }
 
+  const isAdmin = userProfile?.role === "admin"; // ✅ Role-based logic
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {firebaseUser ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            {isAdmin && (
+              <Stack.Screen
+                name="SendNotification"
+                component={SendNotificationScreen}
+              />
+            )}
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

@@ -19,6 +19,7 @@ interface UserProfile {
   email: string;
   firstName: string;
   lastName: string;
+  role: string;
   createdAt: string;
   savings: Saving[];
 }
