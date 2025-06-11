@@ -6,10 +6,10 @@ import axios from "axios";
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// 🔧 Ping Route
-router.get("/ping", (req, res) => {
-  res.send("pong");
-});
+function calculateLevelFromXP(xp: number) {
+  // Simple progression formula: level = floor(sqrt(xp / 100))
+  return Math.floor(Math.sqrt(xp / 100));
+}
 
 // 🔐 Register User (called after Firebase registration)
 router.post("/register", authenticate, async (req, res) => {
@@ -24,6 +24,7 @@ router.post("/register", authenticate, async (req, res) => {
         firebaseId,
         email,
         role: "",
+        streakCount: 0,
         firstName: "",
         lastName: "",
       },
@@ -105,6 +106,10 @@ router.get("/profile", authenticate, async (req, res) => {
         id: true,
         email: true,
         firstName: true,
+        role: true,
+        streakCount: true,
+        xp: true,
+        level: true,
         lastName: true,
         createdAt: true,
         savings: {
@@ -126,7 +131,7 @@ router.get("/profile", authenticate, async (req, res) => {
   }
 });
 
-// 💰 Save Crypto
+// 💰 Save Crypto + XP + Level-Up
 router.post("/save", authenticate, async (req, res) => {
   try {
     const firebaseId = (req as any).firebaseId;
@@ -161,6 +166,11 @@ router.post("/save", authenticate, async (req, res) => {
 
     const cryptoQty = parseFloat(amount) / price;
 
+    // 1 XP per $1 saved
+    const xpEarned = Math.floor(parseFloat(amount));
+    const updatedXP = (user.xp || 0) + xpEarned;
+    const newLevel = calculateLevelFromXP(updatedXP);
+
     const saving = await prisma.saving.create({
       data: {
         userId: user.id,
@@ -170,7 +180,22 @@ router.post("/save", authenticate, async (req, res) => {
       },
     });
 
-    res.json(saving);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        xp: updatedXP,
+        level: newLevel,
+        lastSavedDate: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      saving,
+      xpEarned,
+      newXP: updatedXP,
+      newLevel,
+    });
   } catch (err) {
     console.error("Saving error:", err);
     res.status(500).json({ error: "Failed to save" });

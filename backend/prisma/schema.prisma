@@ -22,8 +22,12 @@ model User {
   email     String
   createdAt DateTime @default(now())
   savings   Saving[]
-  pushToken  String?  // ✅ Optional push token
-  notifications Notification[] // 👈 New relation
+  pushToken  String?  
+  streakCount     Int       @default(0)
+  lastSavedDate   DateTime? // updated on save
+  xp            Int       @default(0)   // 🎮 NEW
+  level         Int       @default(1)   // 🎮 NEW
+  notifications Notification[] 
   broadcastNotification BroadcastNotification[]
   deviceToken DeviceToken[]
 }

@@ -67,6 +67,20 @@ export default function ProfileScreen({ navigation }: any) {
     0;
   const isAdmin = userProfile?.role === "admin";
 
+  const streak = userProfile.streakCount || 0;
+  const lastSaved = userProfile.lastSavedDate
+    ? new Date(userProfile.lastSavedDate)
+    : null;
+
+  const getCelebrationEmoji = (days: number) => {
+    if (days >= 30) return "🏆";
+    if (days >= 7) return "🎊";
+    if (days >= 3) return "🔥";
+    return "👏";
+  };
+
+  const celebration = streak > 0 ? getCelebrationEmoji(streak) : null;
+
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
       <Text variant="headlineMedium" style={{ marginBottom: 16 }}>
@@ -105,6 +119,29 @@ export default function ProfileScreen({ navigation }: any) {
           ${totalUsd.toFixed(2)}
         </Text>
       </Card>
+
+      {streak > 0 && (
+        <Card
+          style={{
+            marginBottom: 16,
+            padding: 16,
+            backgroundColor: "#e8f5e9",
+          }}
+        >
+          <Text variant="titleMedium">
+            {celebration} {streak}-Day Savings Streak!
+          </Text>
+          {lastSaved && (
+            <Text style={{ color: "#555", marginTop: 4 }}>
+              Last saved: {lastSaved.toLocaleDateString()}{" "}
+              {lastSaved.toLocaleTimeString()}
+            </Text>
+          )}
+          <Text style={{ marginTop: 4, color: "#2e7d32" }}>
+            Keep it going to earn bonuses!
+          </Text>
+        </Card>
+      )}
 
       <Card style={{ marginBottom: 16, padding: 16 }}>
         <Text variant="titleMedium">Savings History</Text>

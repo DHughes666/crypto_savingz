@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { View, ScrollView } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { View, ScrollView, Modal, Text as RNText } from "react-native";
 import { Text, Card, Button, ActivityIndicator } from "react-native-paper";
+import ConfettiCannon from "react-native-confetti-cannon";
 import { useUnifiedAuth } from "../context/UnifiedAuthProvider"; // ✅ NEW
 import axios from "axios";
 import Constants from "expo-constants";
@@ -20,6 +21,8 @@ export default function DashboardScreen({ navigation, route }: any) {
     {}
   );
   const [priceError, setPriceError] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const confettiRef = useRef<any>(null);
 
   const fetchPrices = async () => {
     try {
@@ -89,12 +92,15 @@ export default function DashboardScreen({ navigation, route }: any) {
   };
 
   useEffect(() => {
+    if (userProfile?.level && userProfile.level > 1) {
+      setShowCelebration(true);
+    }
     fetchPrices();
     if (route?.params?.refresh) {
       refreshUserProfile(); // ✅ NEW
       navigation.setParams({ refresh: false });
     }
-  }, [route?.params?.refresh]);
+  }, [route?.params?.refresh, userProfile?.level]);
 
   if (userLoading || !userProfile) {
     return (
@@ -121,11 +127,55 @@ export default function DashboardScreen({ navigation, route }: any) {
     return sum + cryptoQty * ngnPrice;
   }, 0);
 
+  const streak = userProfile.streakCount || 0;
+  const lastSaved = savings.length
+    ? new Date(Math.max(...savings.map((s) => new Date(s.timestamp).getTime())))
+    : null;
+
+  const getCelebrationEmoji = (days: number) => {
+    if (days >= 30) return "🏆";
+    if (days >= 7) return "🎊";
+    if (days >= 3) return "🔥";
+    return "👏";
+  };
+
+  const celebration = streak > 0 ? getCelebrationEmoji(streak) : null;
+
+  const getMilestone = (amount: number) => {
+    if (amount >= 5000) return { badge: "🏅", label: "Elite Saver" };
+    if (amount >= 1000) return { badge: "🥇", label: "Gold Saver" };
+    if (amount >= 500) return { badge: "🥈", label: "Silver Saver" };
+    if (amount >= 100) return { badge: "🥉", label: "Bronze Saver" };
+    return null;
+  };
+
+  const milestone = getMilestone(totalUsd);
+
   return (
     <ScrollView contentContainerStyle={{ padding: 20 }}>
       <Text variant="headlineMedium" style={{ marginBottom: 12 }}>
         Welcome {userProfile.firstName || `User_${userProfile.id}`}
       </Text>
+
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <Text variant="titleMedium">🎮 Gamified Rewards</Text>
+        <Text>Level: {userProfile.level ?? 0}</Text>
+        <Text>XP: {userProfile.xp ?? 0}</Text>
+
+        {/* Progress Bar */}
+        <View style={{ height: 10, backgroundColor: "#ccc", marginTop: 8 }}>
+          <View
+            style={{
+              height: "100%",
+              width: `${((userProfile.xp % 100) / 100) * 100}%`,
+              backgroundColor: "#6200ee",
+            }}
+          />
+        </View>
+        <Text style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+          {100 - (userProfile.xp % 100)} XP to next level
+        </Text>
+      </Card>
 
       {priceError && (
         <Card
@@ -143,6 +193,42 @@ export default function DashboardScreen({ navigation, route }: any) {
           ≈ ₦{totalNgn.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </Text>
       </Card>
+
+      {streak > 0 && (
+        <Card
+          style={{ marginBottom: 16, padding: 16, backgroundColor: "#e8f5e9" }}
+        >
+          <Text variant="titleMedium">
+            {celebration} {streak}-Day Savings Streak!
+          </Text>
+          {lastSaved && (
+            <Text style={{ color: "#555", marginTop: 4 }}>
+              Last saved: {lastSaved.toLocaleDateString()}{" "}
+              {lastSaved.toLocaleTimeString()}
+            </Text>
+          )}
+          <Text style={{ marginTop: 4, color: "#2e7d32" }}>
+            Keep it going to earn bonuses!
+          </Text>
+        </Card>
+      )}
+
+      {milestone && (
+        <Card
+          style={{
+            marginBottom: 16,
+            padding: 16,
+            backgroundColor: "#fff3e0",
+          }}
+        >
+          <Text variant="titleMedium">
+            {milestone.badge} {milestone.label}
+          </Text>
+          <Text style={{ color: "#6d4c41", marginTop: 4 }}>
+            You've saved over ${Math.floor(totalUsd)} — keep up the great work!
+          </Text>
+        </Card>
+      )}
 
       {Object.entries(groupByCoin).map(([coin, usdAmount]) => {
         const usdPrice = priceMap[coin] || 1;
@@ -202,6 +288,32 @@ export default function DashboardScreen({ navigation, route }: any) {
       >
         Add New Saving
       </Button>
+      <Modal
+        visible={showCelebration}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCelebration(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.8)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Card style={{ padding: 24 }}>
+            <Text variant="titleLarge" style={{ textAlign: "center" }}>
+              🎉 Level Up!
+            </Text>
+            <Text style={{ textAlign: "center", marginVertical: 12 }}>
+              You reached level {userProfile.level}! Keep saving!
+            </Text>
+            <Button onPress={() => setShowCelebration(false)}>Awesome!</Button>
+          </Card>
+          <ConfettiCannon count={150} origin={{ x: 200, y: -20 }} autoStart />
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

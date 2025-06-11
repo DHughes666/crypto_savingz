@@ -20,6 +20,10 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   role: string;
+  streakCount: number;
+  lastSavedDate: Date;
+  xp: number;
+  level: number;
   createdAt: string;
   savings: Saving[];
 }
