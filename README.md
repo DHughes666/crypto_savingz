@@ -146,6 +146,13 @@ npx prisma migrate dev
 npm run dev
 ```
 
+**Update backend:**
+
+```bash
+cd backend
+npx prisma db push
+```
+
 **Start frontend:**
 
 ```bash
