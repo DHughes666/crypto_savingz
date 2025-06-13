@@ -1,0 +1,43 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+savingz-tatum/node_modules/
+
+# Expo
+savingz-tatum/.expo/
+savingz-tatum/dist/
+savingz-tatum/web-build/
+savingz-tatum/expo-env.d.ts
+
+# Native
+savingz-tatum/.kotlin/
+savingz-tatum/*.orig.*
+savingz-tatum/*.jks
+savingz-tatum/*.p8
+savingz-tatum/*.p12
+savingz-tatum/*.key
+savingz-tatum/*.mobileprovision
+
+# Metro
+savingz-tatum/.metro-health-check*
+
+# debug
+savingz-tatum/npm-debug.*
+savingz-tatum/yarn-debug.*
+savingz-tatum/yarn-error.*
+
+# macOS
+savingz-tatum/.DS_Store
+savingz-tatum/*.pem
+
+# local env files
+savingz-tatum/.env*.local
+savingz-tatum/.env
+
+# typescript
+savingz-tatum/*.tsbuildinfo
+
+savingz-tatum/app-example
+
+backend/node_modules
+backend/.env
