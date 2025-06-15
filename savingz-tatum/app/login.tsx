@@ -1,23 +1,50 @@
 /* eslint-disable react/no-unescaped-entities */
 import React, { useState } from "react";
+import axios from "axios";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
 import { router } from "expo-router";
+import Constants from "expo-constants";
 
 export default function Login() {
+  const { API_URL } = Constants.expoConfig?.extra || {};
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [error, setError] = useState("");
 
   const handleLogin = async () => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      const token = await user.getIdToken();
+
+      await axios.post(
+        `${API_URL}/api/user/register`,
+        {
+          email: user.email,
+          firebaseId: user.uid,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("User successfully registered in Neon DB");
+      setError("");
       router.replace("/"); // redirect to home/dashboard
-    } catch (error: any) {
-      alert(error.message);
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

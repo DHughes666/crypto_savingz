@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const [loadingCoins, setLoadingCoins] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [balance, setBalance] = useState(4320); // Mock balance
 
   const fetchCoins = async (reset = false, newPage = 1) => {
@@ -55,6 +56,7 @@ export default function Dashboard() {
     } else if (user) {
       fetchCoins(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, selectedCategory]);
 
   const onRefresh = async () => {

@@ -43,8 +43,6 @@ export default function Signup() {
 
       console.log("User registered in backend");
       setError("");
-      // Optionally navigate to dashboard
-      // navigation.navigate("Dashboard");
       router.replace("/");
     } catch (err: any) {
       console.error("Registration failed:", err);
