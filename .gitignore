@@ -41,3 +41,5 @@ savingz-tatum/app-example
 
 backend/node_modules
 backend/.env
+backend/src/firebase/serviceAccountKey.json
+

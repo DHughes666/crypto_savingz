@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id            String    @id @default(cuid())
+  firebaseId String   @unique
+  email         String    @unique
+  firstName     String
+  lastName      String
+  role          String    @default("user") // e.g., user, admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  profilePicture String?  // URL to profile image
+  isVerified     Boolean   @default(false) // For email verification
+  fcmToken       String?   // For push notifications
+
+  // Relations
+  wallets       Wallet[]  // One-to-many relationship
+  // Add other related models here, e.g., savings, transactions, notifications
+}
+
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String
+  currency  String
+  xpub      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}

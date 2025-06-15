@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
@@ -24,41 +24,46 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, justifyContent: "center", padding: 20 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text variant="headlineMedium" style={{ marginBottom: 20 }}>
-        Welcome Back 👋
-      </Text>
-      <TextInput
-        label="Email"
-        value={email}
-        mode="outlined"
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{ marginBottom: 10 }}
-      />
-      <TextInput
-        label="Password"
-        value={password}
-        mode="outlined"
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ marginBottom: 20 }}
-      />
-      <Button
-        mode="contained"
-        onPress={handleLogin}
-        loading={loading}
-        disabled={!email || !password}
+    <ScrollView contentContainerStyle={{ padding: 10 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: "center", padding: 20 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        Sign In
-      </Button>
-      <Button onPress={() => router.push("/signup")} style={{ marginTop: 10 }}>
-        Don't have an account? Sign Up
-      </Button>
-    </KeyboardAvoidingView>
+        <Text variant="headlineMedium" style={{ marginBottom: 20 }}>
+          Welcome Back 👋
+        </Text>
+        <TextInput
+          label="Email"
+          value={email}
+          mode="outlined"
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={{ marginBottom: 10 }}
+        />
+        <TextInput
+          label="Password"
+          value={password}
+          mode="outlined"
+          onChangeText={setPassword}
+          secureTextEntry
+          style={{ marginBottom: 20 }}
+        />
+        <Button
+          mode="contained"
+          onPress={handleLogin}
+          loading={loading}
+          disabled={!email || !password}
+        >
+          Sign In
+        </Button>
+        <Button
+          onPress={() => router.push("/signup")}
+          style={{ marginTop: 10 }}
+        >
+          Don't have an account? Sign Up
+        </Button>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
