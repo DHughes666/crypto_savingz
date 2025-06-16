@@ -9,6 +9,7 @@ type Props = {
   price: number;
   ngnPrice: number;
   change: number;
+  ngnSaved: number;
 };
 
 export default function CoinCard({
@@ -18,6 +19,7 @@ export default function CoinCard({
   price,
   ngnPrice,
   change,
+  ngnSaved,
 }: Props) {
   const isUp = change > 0;
   const badgeColor = change === 0 ? "#999" : isUp ? "green" : "red";
@@ -31,9 +33,14 @@ export default function CoinCard({
           <Text style={styles.price}>USD: ${price.toFixed(4)}</Text>
           <Text style={styles.price}>NGN: ₦{ngnPrice.toLocaleString()}</Text>
         </View>
-        <Badge style={[styles.badge, { backgroundColor: badgeColor }]}>
-          {`${change.toFixed(2)}%`}
-        </Badge>
+        <View>
+          <Text style={styles.saved}>
+            ₦{ngnSaved.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </Text>
+          <Badge style={[styles.badge, { backgroundColor: badgeColor }]}>
+            {`${change.toFixed(2)}%`}
+          </Badge>
+        </View>
       </Card.Content>
     </Card>
   );
@@ -66,5 +73,9 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     paddingHorizontal: 8,
+  },
+  saved: {
+    padding: 3,
+    fontSize: 12,
   },
 });

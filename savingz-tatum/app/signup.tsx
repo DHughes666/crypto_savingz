@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
 import axios from "axios";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -6,6 +7,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
 import { router } from "expo-router";
 import Constants from "expo-constants";
+import Toast from "react-native-toast-message";
+import { firebaseErrorMessages } from "../utils/firebaseError";
 
 const { API_URL } = Constants.expoConfig?.extra || {};
 
@@ -14,11 +17,28 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
 
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSignup = async () => {
-    if (password !== confirm) return alert("Passwords do not match");
+    if (!isValidEmail(email)) {
+      Toast.show({ type: "error", text1: "Invalid email format" });
+      return;
+    }
+    if (password.length < 6) {
+      Toast.show({
+        type: "error",
+        text1: "Password must be at least 6 characters",
+      });
+      return;
+    }
+    if (password !== confirm) {
+      Toast.show({ type: "error", text1: "Passwords do not match" });
+      return;
+    }
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -27,26 +47,29 @@ export default function Signup() {
         password
       );
       const user = userCredential.user;
-
       const token = await user.getIdToken();
 
       await axios.post(
         `${API_URL}/api/user/register`,
-        {
-          email: user.email,
-          firebaseId: user.uid,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { email: user.email, firebaseId: user.uid },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("User registered in backend");
-      setError("");
+      Toast.show({ type: "success", text1: "Account created!" });
       router.replace("/");
     } catch (err: any) {
-      console.error("Registration failed:", err);
-      setError(err.message || "Registration failed");
+      const code = err?.code || "";
+      const friendlyMessage =
+        firebaseErrorMessages[code] || "Signup failed. Please try again.";
+      if (!firebaseErrorMessages[code]) {
+        console.error("Unhandled Firebase error:", err);
+      }
+
+      Toast.show({
+        type: "error",
+        text1: "Signup failed",
+        text2: friendlyMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -61,6 +84,7 @@ export default function Signup() {
         <Text variant="headlineMedium" style={{ marginBottom: 20 }}>
           Create Account 🚀
         </Text>
+
         <TextInput
           label="Email"
           value={email}

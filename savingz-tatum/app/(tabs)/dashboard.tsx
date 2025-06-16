@@ -1,35 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, View, RefreshControl } from "react-native";
-import {
-  Text,
-  Button,
-  ActivityIndicator,
-  SegmentedButtons,
-} from "react-native-paper";
-import { useAuth } from "../context/AuthProvider";
-import { auth } from "../lib/firebaseConfig";
+import { Text, Button, TextInput, ActivityIndicator } from "react-native-paper";
+import { useAuth } from "../../context/AuthProvider";
+import { auth } from "../../lib/firebaseConfig";
 import { router } from "expo-router";
-import { getCoinsByCategory } from "../lib/coinGecko";
-import GradientHeader from "../components/GradientHeader";
-import CoinCard from "../components/CoinCard";
-
-const categories = [
-  { label: "All", id: "" },
-  { label: "BNB", id: "binancecoin" },
-  { label: "ETH", id: "ethereum-ecosystem" },
-  { label: "Alpha", id: "binance-launchpad" },
-];
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCoinsByCategory, getCoinCategories } from "../../lib/coinGecko";
+import GradientHeader from "../../components/GradientHeader";
+import CoinCard from "../../components/CoinCard";
+import { Coin } from "../../types/coin";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
-
-  const [coins, setCoins] = useState([]);
+  const [coins, setCoins] = useState<Coin[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [page, setPage] = useState(1);
   const [loadingCoins, setLoadingCoins] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [balance, setBalance] = useState(4320); // Mock balance
+  const [balance, setBalance] = useState(0);
+  const [categories, setCategories] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const fetchCoins = async (reset = false, newPage = 1) => {
     try {
@@ -44,11 +36,29 @@ export default function Dashboard() {
       if (reset) setPage(1);
     } catch (error: any) {
       console.warn("Error fetching coins:", error?.message || error);
-      setCoins([]); // Clear stale data
+      setCoins([]);
     } finally {
       setLoadingCoins(false);
     }
   };
+
+  const fetchCategories = async () => {
+    try {
+      const fetched = await getCoinCategories();
+      setCategories([{ label: "All", value: "" }, ...fetched]);
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+    }
+  };
+
+  // Only activate when the coin categories get updated
+  // useEffect(() => {
+  //   AsyncStorage.removeItem("cached_coin_categories");
+  // }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -58,6 +68,14 @@ export default function Dashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, selectedCategory]);
+
+  useEffect(() => {
+    const total = coins.reduce(
+      (acc, coin) => acc + (coin.saved_amount || 0),
+      0
+    );
+    setBalance(total);
+  }, [coins]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -80,16 +98,42 @@ export default function Dashboard() {
       }
     >
       <GradientHeader balance={balance} />
+      <TextInput
+        mode="outlined"
+        label="Search Categories"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        style={{ marginHorizontal: 16, marginBottom: 8 }}
+      />
 
-      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-        <SegmentedButtons
-          value={selectedCategory}
-          onValueChange={(val) => setSelectedCategory(val)}
-          buttons={categories.map((cat) => ({
-            label: cat.label,
-            value: cat.id,
-          }))}
-        />
+      <View style={{ marginBottom: 16 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ paddingHorizontal: 10 }}
+        >
+          {categories.length === 0 ? (
+            <ActivityIndicator size="small" style={{ marginLeft: 10 }} />
+          ) : (
+            categories
+              .filter((cat) =>
+                cat.label.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((cat) => (
+                <Button
+                  key={cat.value}
+                  mode={
+                    selectedCategory === cat.value ? "contained" : "outlined"
+                  }
+                  onPress={() => setSelectedCategory(cat.value)}
+                  style={{ marginRight: 8 }}
+                  compact
+                >
+                  {cat.label}
+                </Button>
+              ))
+          )}
+        </ScrollView>
       </View>
 
       <View style={{ paddingHorizontal: 20 }}>
@@ -109,6 +153,7 @@ export default function Dashboard() {
                 image={coin.image}
                 price={coin.current_price}
                 ngnPrice={coin.ngn_price}
+                ngnSaved={coin.saved_amount}
                 change={coin.price_change_percentage_24h || 0}
               />
             ))}

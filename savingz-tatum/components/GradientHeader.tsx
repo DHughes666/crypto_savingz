@@ -15,7 +15,12 @@ export default function GradientHeader({ balance }: { balance: number }) {
         Welcome back 👋
       </Text>
       <Text variant="headlineMedium" style={styles.balance}>
-        ${balance.toLocaleString()} Saved
+        $
+        {balance.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}{" "}
+        Saved
       </Text>
     </LinearGradient>
   );

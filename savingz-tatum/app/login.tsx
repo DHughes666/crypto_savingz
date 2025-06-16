@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import React, { useState } from "react";
 import axios from "axios";
@@ -7,16 +8,32 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
 import { router } from "expo-router";
 import Constants from "expo-constants";
+import Toast from "react-native-toast-message";
+import { firebaseErrorMessages } from "../utils/firebaseError";
+
+const { API_URL } = Constants.expoConfig?.extra || {};
 
 export default function Login() {
-  const { API_URL } = Constants.expoConfig?.extra || {};
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
 
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleLogin = async () => {
+    if (!isValidEmail(email)) {
+      Toast.show({ type: "error", text1: "Invalid email format" });
+      return;
+    }
+    if (password.length < 6) {
+      Toast.show({
+        type: "error",
+        text1: "Password must be at least 6 characters",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -25,26 +42,29 @@ export default function Login() {
         password
       );
       const user = userCredential.user;
-
       const token = await user.getIdToken();
 
       await axios.post(
         `${API_URL}/api/user/register`,
-        {
-          email: user.email,
-          firebaseId: user.uid,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { email: user.email, firebaseId: user.uid },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("User successfully registered in Neon DB");
-      setError("");
-      router.replace("/"); // redirect to home/dashboard
+      Toast.show({ type: "success", text1: "Login successful" });
+      router.replace("/");
     } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Login failed");
+      const code = err?.code || "";
+      const friendlyMessage =
+        firebaseErrorMessages[code] || "Login failed. Please try again.";
+      if (!firebaseErrorMessages[code]) {
+        console.error("Unhandled Firebase error:", err);
+      }
+
+      Toast.show({
+        type: "error",
+        text1: "Login failed",
+        text2: friendlyMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -59,6 +79,7 @@ export default function Login() {
         <Text variant="headlineMedium" style={{ marginBottom: 20 }}>
           Welcome Back 👋
         </Text>
+
         <TextInput
           label="Email"
           value={email}
@@ -89,6 +110,13 @@ export default function Login() {
           style={{ marginTop: 10 }}
         >
           Don't have an account? Sign Up
+        </Button>
+        <Button
+          onPress={() => router.push("/forgot-password")}
+          style={{ marginTop: 5 }}
+          mode="text"
+        >
+          Forgot Password?
         </Button>
       </KeyboardAvoidingView>
     </ScrollView>

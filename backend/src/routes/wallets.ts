@@ -1,38 +1,50 @@
 import express from "express";
 import axios from "axios";
-import { PrismaClient } from "@prisma/client";
 import { authenticate } from "../middleware/auth";
+import { PrismaClient } from "@prisma/client";
 
-const router = express.Router();
 const prisma = new PrismaClient();
+const router = express.Router();
 
-const TATUM_API = "https://api.tatum.io/v3";
 const TATUM_API_KEY = process.env.TATUM_API_KEY!;
+const TATUM_API_URL = process.env.TATUM_API_URL || "https://api.tatum.io";
 
-// POST /wallet/create
-router.post("/create", authenticate, async (req, res) => {
+// 👇 POST /api/wallets
+router.post("/", authenticate, async (req, res) => {
   const userId = (req as any).firebaseId;
 
   try {
-    // 1. Create BTC wallet
-    const walletRes = await axios.get(`${TATUM_API}/bitcoin/wallet`, {
-      headers: { "x-api-key": TATUM_API_KEY },
-    });
+    const existing = await prisma.wallet.findFirst({ where: { userId } });
+    if (existing) return res.json(existing);
 
-    const { xpub } = walletRes.data;
+    const currency = "ETH"; // You can later allow switching this
+    const response = await axios.post(
+      `${TATUM_API_URL}/v3/ethereum/wallet`,
+      {},
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
 
-    // 2. Store in DB
+    const { xpub } = response.data;
+
+    // Derive address from xpub
+    const addrRes = await axios.get(
+      `${TATUM_API_URL}/v3/ethereum/address/${xpub}/0`,
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+
     const wallet = await prisma.wallet.create({
       data: {
         userId,
-        currency: "BTC",
-        xpub,
+        address: addrRes.data,
+        currency,
+        xpub, // ✅ Required field
+        provider: "Tatum",
       },
     });
 
-    res.status(201).json(wallet);
-  } catch (error: any) {
-    console.error(error.response?.data || error.message);
+    res.json(wallet);
+  } catch (err) {
+    console.error("Wallet creation failed:", err);
     res.status(500).json({ error: "Wallet creation failed" });
   }
 });

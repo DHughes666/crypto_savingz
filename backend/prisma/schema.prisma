@@ -36,9 +36,12 @@ model User {
 model Wallet {
   id        String   @id @default(cuid())
   userId    String
+  address   String
   currency  String
+  provider  String   @default("Tatum")
   xpub      String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
 }
