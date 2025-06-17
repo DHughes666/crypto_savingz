@@ -1,51 +1,89 @@
 import express from "express";
-import axios from "axios";
 import { authenticate } from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
+import { generateWalletAndAddress } from "../lib/ethersClient";
+import { encryptMnemonic, decryptMnemonic } from "../lib/cryptoUtils";
 
-const prisma = new PrismaClient();
 const router = express.Router();
+const prisma = new PrismaClient();
 
-const TATUM_API_KEY = process.env.TATUM_API_KEY!;
-const TATUM_API_URL = process.env.TATUM_API_URL || "https://api.tatum.io";
+// ✅ Supported EVM chains — you can add "ETH", "POLYGON" later
+const supportedChains = ["BNB"];
 
-// 👇 POST /api/wallets
 router.post("/", authenticate, async (req, res) => {
-  const userId = (req as any).firebaseId;
+  const firebaseId = (req as any).firebaseId;
+  let { currency = "BNB" } = req.body as { currency?: string };
+  currency = currency.toUpperCase();
+
+  if (!supportedChains.includes(currency)) {
+    console.warn(
+      `Invalid currency '${currency}' requested. Defaulting to BNB.`
+    );
+    currency = "BNB";
+  }
 
   try {
-    const existing = await prisma.wallet.findFirst({ where: { userId } });
+    // ✅ Get user by Firebase UID
+    const user = await prisma.user.findUnique({
+      where: { firebaseId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userId = user.id;
+
+    // ✅ Check for existing wallet
+    const existing = await prisma.wallet.findFirst({
+      where: { userId, currency },
+    });
     if (existing) return res.json(existing);
 
-    const currency = "ETH"; // You can later allow switching this
-    const response = await axios.post(
-      `${TATUM_API_URL}/v3/ethereum/wallet`,
-      {},
-      { headers: { "x-api-key": TATUM_API_KEY } }
-    );
+    // ✅ Generate wallet using ethers.js
+    const { address, xpub, mnemonic, privateKey } =
+      await generateWalletAndAddress(currency);
+    const encryptedMnemonic = encryptMnemonic(mnemonic || "");
 
-    const { xpub } = response.data;
-
-    // Derive address from xpub
-    const addrRes = await axios.get(
-      `${TATUM_API_URL}/v3/ethereum/address/${xpub}/0`,
-      { headers: { "x-api-key": TATUM_API_KEY } }
-    );
-
+    // ⚠️ Store sensitive data carefully (not recommended in plaintext)
     const wallet = await prisma.wallet.create({
       data: {
         userId,
-        address: addrRes.data,
         currency,
-        xpub, // ✅ Required field
-        provider: "Tatum",
+        address,
+        xpub: xpub || undefined,
+        mnemonicEncrypted: encryptedMnemonic,
+        provider: "ethers.js",
       },
     });
 
-    res.json(wallet);
-  } catch (err) {
-    console.error("Wallet creation failed:", err);
+    // ✅ Send minimal safe data to frontend
+    res.json({
+      id: wallet.id,
+      address: wallet.address,
+      currency: wallet.currency,
+      provider: wallet.provider,
+      createdAt: wallet.createdAt,
+    });
+  } catch (err: any) {
+    console.error("Wallet creation failed:", err.message || err);
     res.status(500).json({ error: "Wallet creation failed" });
+  }
+});
+
+router.get("/mnemonic/:walletId", authenticate, async (req, res) => {
+  const { walletId } = req.params;
+  const wallet = await prisma.wallet.findUnique({ where: { id: walletId } });
+
+  if (!wallet?.mnemonicEncrypted) {
+    return res.status(404).json({ error: "Mnemonic not found" });
+  }
+
+  try {
+    const mnemonic = decryptMnemonic(wallet.mnemonicEncrypted);
+    res.json({ mnemonic });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to decrypt mnemonic" });
   }
 });
 

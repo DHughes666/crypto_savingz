@@ -38,10 +38,11 @@ model Wallet {
   userId    String
   address   String
   currency  String
-  provider  String   @default("Tatum")
-  xpub      String
+  provider  String   @default("ethers.js")
+  xpub      String?  // nullable now
+  privateKey  String? // encrypted!
+  mnemonicEncrypted String?  
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
