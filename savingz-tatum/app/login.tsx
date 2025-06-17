@@ -51,7 +51,7 @@ export default function Login() {
       );
 
       Toast.show({ type: "success", text1: "Login successful" });
-      router.replace("/");
+      router.replace("/(tabs)/dashboard");
     } catch (err: any) {
       const code = err?.code || "";
       const friendlyMessage =

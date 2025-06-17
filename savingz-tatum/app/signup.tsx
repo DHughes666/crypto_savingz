@@ -56,7 +56,7 @@ export default function Signup() {
       );
 
       Toast.show({ type: "success", text1: "Account created!" });
-      router.replace("/");
+      router.replace("/(tabs)/dashboard");
     } catch (err: any) {
       const code = err?.code || "";
       const friendlyMessage =
